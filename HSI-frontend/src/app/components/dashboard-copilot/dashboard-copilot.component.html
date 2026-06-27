@@ -1,0 +1,51 @@
+<div class="copilot-shell" [class.open]="isOpen">
+  @if (isOpen) {
+    <section class="copilot-panel">
+      <div class="copilot-header">
+        <div>
+          <h3>Dashboard Copilot</h3>
+          <p>Grounded answers from the current dashboard context</p>
+        </div>
+        <button type="button" class="close-btn" (click)="toggleOpen()">Close</button>
+      </div>
+
+      <div class="suggestions">
+        @for (prompt of suggestedPrompts; track prompt) {
+          <button type="button" class="prompt-chip" (click)="usePrompt(prompt)" [disabled]="loading">
+            {{ prompt }}
+          </button>
+        }
+      </div>
+
+      <div class="messages">
+        @for (message of messages; track $index) {
+          <div class="message" [class.assistant]="message.role === 'assistant'" [class.user]="message.role === 'user'">
+            <span class="message-role">{{ message.role === 'assistant' ? 'Copilot' : 'You' }}</span>
+            <p>{{ message.content }}</p>
+          </div>
+        }
+        @if (loading) {
+          <div class="message assistant">
+            <span class="message-role">Copilot</span>
+            <p>Reading the dashboard and drafting an answer...</p>
+          </div>
+        }
+      </div>
+
+      <div class="composer">
+        <textarea
+          [(ngModel)]="draft"
+          rows="3"
+          placeholder="Ask about occupancy, top-risk departments, Emergency Department wait time, alerts, or a summary..."
+        ></textarea>
+        <button type="button" class="send-btn" (click)="sendMessage()" [disabled]="loading || !draft.trim()">
+          Ask Copilot
+        </button>
+      </div>
+    </section>
+  }
+
+  <button type="button" class="launcher" (click)="toggleOpen()">
+    {{ isOpen ? 'Hide Copilot' : 'Ask Dashboard Copilot' }}
+  </button>
+</div>

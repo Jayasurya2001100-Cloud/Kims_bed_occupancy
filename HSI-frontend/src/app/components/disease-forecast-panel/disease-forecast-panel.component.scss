@@ -1,0 +1,172 @@
+.disease-forecast-panel {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.panel-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+  color: #333;
+}
+
+.panel-caption {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+  max-width: 52rem;
+}
+
+.panel-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: #555;
+
+    select {
+      min-width: 9rem;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #fff;
+    }
+  }
+}
+
+.panel-loading,
+.panel-error {
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.panel-loading {
+  background: #f0f4ff;
+  color: #445;
+}
+
+.panel-error {
+  background: #fff3f3;
+  color: #a33;
+}
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.forecast-card {
+  border: 1px solid #e8ecf4;
+  border-radius: 10px;
+  padding: 0.85rem;
+  background: #fafbff;
+
+  h4 {
+    margin: 0 0 0.35rem;
+    font-size: 0.95rem;
+    color: #333;
+  }
+
+  &.ed-card {
+    grid-column: 1 / -1;
+  }
+}
+
+.forecast-meta {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  color: #667;
+}
+
+.forecast-note,
+.forecast-explanation {
+  margin: 0 0 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #445;
+}
+
+.forecast-note {
+  color: #5a5f75;
+  font-style: italic;
+}
+
+.forecast-insights {
+  margin: 0 0 0.75rem 1rem;
+  padding: 0;
+  color: #334;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.forecast-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #888;
+  padding: 1rem 0;
+}
+
+.narrative-block {
+  overflow: hidden;
+  max-height: 4.5em;
+  position: relative;
+  transition: max-height 0.25s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1.5em;
+    background: linear-gradient(transparent, #fafbff);
+    pointer-events: none;
+  }
+
+  &.expanded {
+    max-height: 60em;
+
+    &::after {
+      display: none;
+    }
+  }
+}
+
+.narrative-toggle {
+  display: inline-block;
+  margin: 0.2rem 0 0.6rem;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 0.76rem;
+  cursor: pointer;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.chart-wrap {
+  position: relative;
+  height: 220px;
+}

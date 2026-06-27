@@ -1,0 +1,160 @@
+<section class="disease-forecast-panel">
+  <div class="panel-header">
+    <div>
+      <h3 class="panel-title">Clinical demand forecasts</h3>
+      <p class="panel-caption">
+        Admissions by disease category, discharge volume, length-of-stay, and Emergency Department wait time,
+        all anchored to the selected dashboard date with a {{ forecastDays }}-day outlook.
+      </p>
+    </div>
+    <div class="panel-controls">
+      <label>
+        <span>Scope</span>
+        <select [value]="scope" (change)="onScopeChange($event)">
+          <option value="category">Disease category</option>
+          <option value="disease">Specific disease</option>
+        </select>
+      </label>
+      @if (scope === 'category') {
+        <label>
+          <span>Category</span>
+          <select [value]="selectedCategory" (change)="onCategoryChange($event)">
+            @for (cat of categories; track cat) {
+              <option [value]="cat">{{ cat }}</option>
+            }
+          </select>
+        </label>
+      } @else {
+        <label>
+          <span>Disease</span>
+          <select [value]="selectedDisease" (change)="onDiseaseChange($event)">
+            <option value="">Choose…</option>
+            @for (d of diseases; track d) {
+              <option [value]="d">{{ d }}</option>
+            }
+          </select>
+        </label>
+      }
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="panel-loading">Running forecasts…</div>
+  }
+  @if (error) {
+    <div class="panel-error">{{ error }}</div>
+  }
+
+  <div class="forecast-grid">
+    <div class="forecast-card ed-card">
+      <h4>Emergency Department wait time</h4>
+      @if (edWaitForecast.forecast_data.length) {
+        @if (forecastExplanation(edWaitForecast) || forecastInsights(edWaitForecast).length) {
+          <div class="narrative-block" [class.expanded]="isExpanded('ed')">
+            @if (forecastExplanation(edWaitForecast)) {
+              <p class="forecast-explanation">{{ forecastExplanation(edWaitForecast) }}</p>
+            }
+            @if (forecastInsights(edWaitForecast).length) {
+              <ul class="forecast-insights">
+                @for (insight of forecastInsights(edWaitForecast); track insight) {
+                  <li>{{ insight }}</li>
+                }
+              </ul>
+            }
+          </div>
+          <button class="narrative-toggle" (click)="toggleCardExpanded('ed')">
+            {{ isExpanded('ed') ? 'Show less ▲' : 'Show more ▼' }}
+          </button>
+        }
+        <div class="chart-wrap"><canvas #edWaitCanvas></canvas></div>
+      } @else {
+        <p class="forecast-empty">No Emergency Department wait time forecast data.</p>
+      }
+    </div>
+
+    <div class="forecast-card">
+      <h4>Admission forecast</h4>
+      @if (hasScopeSelection() && admissionsForecast.forecast_data.length) {
+        @if (forecastExplanation(admissionsForecast) || forecastInsights(admissionsForecast).length) {
+          <div class="narrative-block" [class.expanded]="isExpanded('admissions')">
+            @if (forecastExplanation(admissionsForecast)) {
+              <p class="forecast-explanation">{{ forecastExplanation(admissionsForecast) }}</p>
+            }
+            @if (forecastInsights(admissionsForecast).length) {
+              <ul class="forecast-insights">
+                @for (insight of forecastInsights(admissionsForecast); track insight) {
+                  <li>{{ insight }}</li>
+                }
+              </ul>
+            }
+          </div>
+          <button class="narrative-toggle" (click)="toggleCardExpanded('admissions')">
+            {{ isExpanded('admissions') ? 'Show less ▲' : 'Show more ▼' }}
+          </button>
+        }
+        <div class="chart-wrap"><canvas #admissionsCanvas></canvas></div>
+      } @else if (!hasScopeSelection()) {
+        <p class="forecast-empty">Select a category or disease to load admissions forecast.</p>
+      } @else {
+        <p class="forecast-empty">No admissions forecast data.</p>
+      }
+    </div>
+
+    <div class="forecast-card">
+      <h4>Discharge prediction</h4>
+      @if (hasScopeSelection() && dischargesForecast.forecast_data.length) {
+        @if (forecastExplanation(dischargesForecast) || forecastInsights(dischargesForecast).length) {
+          <div class="narrative-block" [class.expanded]="isExpanded('discharges')">
+            @if (forecastExplanation(dischargesForecast)) {
+              <p class="forecast-explanation">{{ forecastExplanation(dischargesForecast) }}</p>
+            }
+            @if (forecastInsights(dischargesForecast).length) {
+              <ul class="forecast-insights">
+                @for (insight of forecastInsights(dischargesForecast); track insight) {
+                  <li>{{ insight }}</li>
+                }
+              </ul>
+            }
+          </div>
+          <button class="narrative-toggle" (click)="toggleCardExpanded('discharges')">
+            {{ isExpanded('discharges') ? 'Show less ▲' : 'Show more ▼' }}
+          </button>
+        }
+        <div class="chart-wrap"><canvas #dischargesCanvas></canvas></div>
+      } @else if (!hasScopeSelection()) {
+        <p class="forecast-empty">Select a category or disease to load discharge forecast.</p>
+      } @else {
+        <p class="forecast-empty">No discharge forecast data.</p>
+      }
+    </div>
+
+    <div class="forecast-card">
+      <h4>Length of stay trend</h4>
+      @if (hasScopeSelection() && losForecast.forecast_data.length) {
+        @if (forecastExplanation(losForecast) || forecastInsights(losForecast).length) {
+          <div class="narrative-block" [class.expanded]="isExpanded('los')">
+            @if (forecastExplanation(losForecast)) {
+              <p class="forecast-explanation">{{ forecastExplanation(losForecast) }}</p>
+            }
+            @if (forecastInsights(losForecast).length) {
+              <ul class="forecast-insights">
+                @for (insight of forecastInsights(losForecast); track insight) {
+                  <li>{{ insight }}</li>
+                }
+              </ul>
+            }
+          </div>
+          <button class="narrative-toggle" (click)="toggleCardExpanded('los')">
+            {{ isExpanded('los') ? 'Show less ▲' : 'Show more ▼' }}
+          </button>
+        }
+        <div class="chart-wrap"><canvas #losCanvas></canvas></div>
+      } @else if (!hasScopeSelection()) {
+        <p class="forecast-empty">Select a category or disease to load LOS forecast.</p>
+      } @else {
+        <p class="forecast-empty">No LOS forecast data.</p>
+      }
+    </div>
+
+  </div>
+</section>

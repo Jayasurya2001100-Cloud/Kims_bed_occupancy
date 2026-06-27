@@ -1,0 +1,29 @@
+.dfc-wrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.dfc-cell {
+  position: relative;
+  min-height: 220px;
+  background: #fafbff;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 0.35rem 0.35rem;
+
+  &.tall {
+    min-height: 260px;
+  }
+
+  canvas {
+    display: block;
+    width: 100% !important;
+    height: 240px !important;
+  }
+}

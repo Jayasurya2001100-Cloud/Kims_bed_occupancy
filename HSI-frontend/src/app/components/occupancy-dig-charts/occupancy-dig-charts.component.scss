@@ -1,0 +1,270 @@
+.dig-lab {
+  margin: 0;
+  padding: 20px;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid rgba(0,125,176,.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
+
+.dig-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.dig-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #000;
+  border-left: 4px solid #007DB0;
+  padding-left: 10px;
+}
+
+.dig-caption {
+  margin: 0;
+  max-width: 52rem;
+  color: #5c6670;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.dig-summary-pill {
+  padding: 0.6rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(102, 126, 234, 0.1);
+  color: #425466;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.dig-filter-bar {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dig-filter-label {
+  color: #5c6670;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+.dig-filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.dig-filter-button {
+  border: 1px solid rgba(0,125,176,.25);
+  background: #fff;
+  color: #000;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.dig-filter-button:hover {
+  border-color: #007DB0;
+  background: rgba(0,125,176,.08);
+}
+.dig-filter-button.active {
+  background: #007DB0;
+  border-color: #007DB0;
+  color: #fff;
+}
+
+.dig-meta {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.dig-meta-sep {
+  margin: 0 0.35rem;
+}
+
+.dig-error {
+  padding: 0.75rem 1rem;
+  background: #f8d7da;
+  color: #721c24;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.dig-loading {
+  padding: 1rem;
+  color: #495057;
+  font-weight: 500;
+}
+
+.dig-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 1100px) {
+  .dig-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .span-2 {
+    grid-column: span 1 !important;
+  }
+}
+
+.dig-cell {
+  position: relative;
+  min-height: 260px;
+  padding: 8px;
+  background: #F4F7FA;
+  border-radius: 8px;
+  border: 1px solid rgba(0,125,176,.12);
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+
+.dig-cell.tall {
+  min-height: 320px;
+}
+
+.dig-cell.span-2 {
+  grid-column: span 2;
+}
+
+.dig-horizon-cell {
+  min-height: 280px;
+}
+
+.dig-cell canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 360px;
+}
+
+.dig-cell.tall canvas {
+  max-height: 420px;
+}
+
+.dig-dept-forecast-msg {
+  min-height: auto;
+  padding: 0.75rem 1rem;
+  background: #fff8e6;
+  border: 1px solid #ffc107;
+  color: #664d03;
+  font-size: 0.9rem;
+}
+
+.dig-dept-forecast {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dig-dept-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.dig-dept-selectors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-end;
+}
+
+.dig-dept-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2c3e50;
+
+  select {
+    min-width: 14rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid #ced4da;
+    font-size: 0.9rem;
+    background: #fff;
+  }
+}
+
+.dig-dept-hint {
+  font-size: 0.8rem;
+  color: #6c757d;
+  max-width: 18rem;
+  line-height: 1.35;
+}
+
+.dig-dept-submeta {
+  margin: 0;
+  padding: 0 0.25rem;
+  font-size: 0.82rem;
+  color: #495057;
+  line-height: 1.4;
+}
+
+.dig-dept-forecast canvas {
+  flex: 1;
+  min-height: 300px;
+  max-height: 440px;
+}
+
+.dig-chart-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem 0.25rem;
+}
+
+.dig-mape-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: rgba(0,125,176,.1);
+  color: #007DB0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .3px;
+}
+.dig-mape-badge.dig-mape-staffing {
+  background: rgba(0,90,128,.1);
+  color: #005A80;
+}
+
+.dig-rankings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0 0.25rem 0.25rem;
+}
+
+.dig-ranking-row {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid rgba(0,125,176,.12);
+  strong { color: #000; font-size: 12px; }
+  span   { color: #007DB0; font-size: 15px; font-weight: 700; }
+  small  { color: #6C6E71; font-size: 10px; line-height: 1.3; }
+}

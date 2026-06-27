@@ -1,0 +1,114 @@
+<section class="dig-lab">
+  <div class="dig-header">
+    <div>
+      <h2 class="dig-title">Deep-dive analytics</h2>
+      <div class="dig-filter-bar">
+        <span class="dig-filter-label">History window:</span>
+        <div class="dig-filter-buttons">
+          @for (days of historyWindowOptions; track days) {
+            <button
+              type="button"
+              class="dig-filter-button"
+              [class.active]="historyWindowDays === days"
+              (click)="onHistoryWindowChange(days)">
+              {{ historyWindowLabel(days) }}
+            </button>
+          }
+        </div>
+      </div>
+      <div class="dig-filter-bar">
+        <span class="dig-filter-label">Analysis mode:</span>
+        <div class="dig-filter-buttons">
+          <button
+            type="button"
+            class="dig-filter-button"
+            [class.active]="forecastMode === 'sliding'"
+            (click)="onForecastModeChange('sliding')">
+            Standard Analysis
+          </button>
+          <button
+            type="button"
+            class="dig-filter-button"
+            [class.active]="forecastMode === 'expanding'"
+            (click)="onForecastModeChange('expanding')">
+            Progressive Analysis
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (loadError) {
+    <div class="dig-error">{{ loadError }}</div>
+  }
+  @if (loadingCharts) {
+    <div class="dig-loading">Loading chart data…</div>
+  }
+
+  @if (chartPack) {
+    <p class="dig-meta">
+      @if (chartPack.date_range.start && chartPack.date_range.end) {
+        <span>{{ chartPack.date_range.start }} → {{ chartPack.date_range.end }}</span>
+      }
+      <span class="dig-meta-sep">·</span>
+      <span>{{ chartPack.daily.length }} daily points</span>
+    </p>
+    <div class="dig-grid">
+      @if (hasHistoricalData()) {
+      <div class="dig-cell span-2 tall">
+        <div class="dig-chart-meta-row">
+          <span class="dig-mape-badge">Occupancy · {{ occupancyMapeLabel() }}</span>
+        </div>
+        <canvas #histCanvas></canvas>
+      </div>
+      }
+      <div class="dig-cell span-2 tall">
+        <div class="dig-chart-meta-row">
+          <span class="dig-mape-badge dig-mape-staffing">Staffing · {{ staffingMapeLabel() }}</span>
+        </div>
+        <canvas #staffingCanvas></canvas>
+      </div>
+      @if (hasDepartmentSeries()) {
+      <div class="dig-cell span-2 tall">
+        <canvas #sparkCanvas></canvas>
+      </div>
+      }
+      @if (hasDeptHorizonData()) {
+        <div class="dig-cell span-2 dig-horizon-cell">
+          <canvas #deptHorizonCanvas></canvas>
+          @if (departmentHorizonRows().length) {
+            <div class="dig-rankings">
+              @for (row of departmentHorizonRows(); track row.department) {
+                <div class="dig-ranking-row">
+                  <strong>{{ row.department }}</strong>
+                  <span>{{ row.ratePct.toFixed(1) }}%</span>
+                  <small>{{ row.occupied }}/{{ row.totalBeds }} beds on day {{ deptForecastPack?.forecast_days ?? forecastDays }}</small>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+      @if (deptForecastError) {
+        <div class="dig-cell span-2 dig-dept-forecast-msg">{{ deptForecastError }}</div>
+      }
+      @if (hasDeptForecastDeepData()) {
+        <div class="dig-cell span-2 tall dig-dept-forecast">
+          <div class="dig-dept-toolbar">
+            <div class="dig-dept-selectors">
+              <label class="dig-dept-label">
+                <span>Department</span>
+                <select [value]="deptForecastView" (change)="onDeptForecastViewChange($event)">
+                  @for (name of deptForecastDepartmentNames(); track name) {
+                    <option [value]="name" [selected]="name === deptForecastView">{{ name }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+          </div>
+          <canvas #deptForecastCanvas></canvas>
+        </div>
+      }
+    </div>
+  }
+</section>

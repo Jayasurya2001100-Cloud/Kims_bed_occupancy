@@ -1,0 +1,348 @@
+<!-- ═══════════════════════════════════════════════════════════
+     KIMS BED OCCUPANCY DASHBOARD
+     ═══════════════════════════════════════════════════════════ -->
+<div class="app-shell">
+
+  <!-- ── TOPBAR ─────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="brand-icon">🏥</span>
+      <div class="brand-text">
+        <span class="brand-name">KIMS Hospital</span>
+        <span class="brand-sub">Bed Occupancy Intelligence</span>
+      </div>
+    </div>
+    <div class="topbar-controls">
+      <div class="data-badge">
+        <span class="dot" [class.dot-live]="!loading"></span>
+        <span>{{ loading ? 'Loading…' : 'Live · ' + (lastUpdated | date:'HH:mm') }}</span>
+      </div>
+      <button class="btn-refresh" (click)="refreshData()" [disabled]="loading">
+        <span [class.spin]="loading">↻</span> Refresh
+      </button>
+    </div>
+  </header>
+
+  <!-- ── NAV ──────────────────────────────────────────────────── -->
+  <nav class="sidenav">
+    <a href="#overview"   class="nav-item active"><span>▤</span> Overview</a>
+    <a href="#wards"      class="nav-item"><span>🛏</span> Ward Forecast</a>
+    <a href="#leaderboard" class="nav-item"><span>🏆</span> Model Leaderboard</a>
+    <a href="#charts"     class="nav-item"><span>📈</span> Trend Charts</a>
+  </nav>
+
+  <!-- ── MAIN ─────────────────────────────────────────────────── -->
+  <main class="main-content">
+
+    <!-- LOADING ------------------------------------------------- -->
+    <ng-container *ngIf="loading">
+      <div class="state-panel">
+        <div class="pulse-ring"></div>
+        <p>Initialising forecast engine…</p>
+      </div>
+    </ng-container>
+
+    <!-- ERROR --------------------------------------------------- -->
+    <ng-container *ngIf="error && !loading">
+      <div class="state-panel error">
+        <span class="state-icon">⚠</span>
+        <p>{{ error }}</p>
+        <button class="btn-primary" (click)="refreshData()">Retry</button>
+      </div>
+    </ng-container>
+
+    <!-- CONTENT ------------------------------------------------- -->
+    <ng-container *ngIf="!loading && !error && dashboardMetrics">
+
+      <!-- ── SECTION 1 · OVERVIEW KPI STRIP ─────────────────── -->
+      <section id="overview" class="section">
+        <div class="section-heading">
+          <h2>Hospital Overview</h2>
+          <span class="section-meta">As of {{ formatDashboardDate(dashboardMetrics.data_as_of_date) }}</span>
+        </div>
+
+        <div class="kpi-strip">
+
+          <!-- Total Occupancy -->
+          <div class="kpi-card kpi-primary">
+            <div class="kpi-label">Overall Occupancy</div>
+            <div class="kpi-value"
+              [style.color]="currentOccupancyPct() >= 90 ? 'var(--red)' : currentOccupancyPct() >= 75 ? '#e67e22' : 'var(--blue)'">
+              {{ currentOccupancyPct() }}%
+            </div>
+            <div class="kpi-sub">{{ formatNumber(dashboardMetrics.occupied_beds) }} / {{ formatNumber(dashboardMetrics.total_beds) }} beds</div>
+            <div class="kpi-bar">
+              <div class="kpi-fill" [style.width.%]="currentOccupancyPct()"
+                [style.background]="currentOccupancyPct() >= 90 ? 'var(--red)' : 'var(--blue)'"></div>
+            </div>
+          </div>
+
+          <!-- ICU -->
+          <div class="kpi-card">
+            <div class="kpi-label">ICU Occupancy</div>
+            <div class="kpi-value"
+              [style.color]="dashboardMetrics.icu_occupancy_rate * 100 >= 90 ? 'var(--red)' : 'var(--blue)'">
+              {{ formatPercentage(dashboardMetrics.icu_occupancy_rate) }}
+            </div>
+            <div class="kpi-sub">{{ formatNumber(dashboardMetrics.icu_occupied_beds) }} / {{ formatNumber(dashboardMetrics.icu_total_beds) }} beds</div>
+            <div class="kpi-bar">
+              <div class="kpi-fill" [style.width.%]="dashboardMetrics.icu_occupancy_rate * 100"
+                [style.background]="dashboardMetrics.icu_occupancy_rate >= 0.9 ? 'var(--red)' : '#005A80'"></div>
+            </div>
+          </div>
+
+          <!-- Available -->
+          <div class="kpi-card">
+            <div class="kpi-label">Available Beds</div>
+            <div class="kpi-value avail">{{ formatNumber(dashboardMetrics.available_beds) }}</div>
+            <div class="kpi-sub">beds free right now</div>
+          </div>
+
+          <!-- Emergency -->
+          <div class="kpi-card">
+            <div class="kpi-label">Emergency Admissions</div>
+            <div class="kpi-value">{{ formatNumber(dashboardMetrics.emergency_admissions_today) }}</div>
+            <div class="kpi-sub">today</div>
+          </div>
+
+          <!-- Avg LOS -->
+          <div class="kpi-card">
+            <div class="kpi-label">Avg. Length of Stay</div>
+            <div class="kpi-value">{{ dashboardMetrics.avg_length_of_stay.toFixed(1) }}<small> days</small></div>
+            <div class="kpi-sub">per patient</div>
+          </div>
+
+          <!-- 7-day forecast -->
+          <div class="kpi-card kpi-forecast">
+            <div class="kpi-label">7-Day Forecast</div>
+            <div class="kpi-value">
+              {{ formatPercentage(dashboardMetrics.predicted_occupancy_7_days) }}
+            </div>
+            <div class="kpi-sub">≈ {{ formatNumber(roundPredictedOccupiedBeds()) }} beds predicted</div>
+            <div class="kpi-trend"
+              [class.trend-up]="dashboardMetrics.predicted_occupancy_7_days > dashboardMetrics.current_occupancy_rate"
+              [class.trend-dn]="dashboardMetrics.predicted_occupancy_7_days < dashboardMetrics.current_occupancy_rate">
+              {{ dashboardMetrics.predicted_occupancy_7_days > dashboardMetrics.current_occupancy_rate ? '↑ Rising' : dashboardMetrics.predicted_occupancy_7_days < dashboardMetrics.current_occupancy_rate ? '↓ Easing' : '→ Stable' }}
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── SECTION 1.5 · BED REQUIREMENTS VISUAL ─────────── -->
+      <section id="bed-requirements" class="section">
+        <app-bed-requirements-visual
+          [forecastData]="forecastData.forecast_data"
+          [currentBeds]="dashboardMetrics.occupied_beds"
+          [totalBeds]="dashboardMetrics.total_beds">
+        </app-bed-requirements-visual>
+      </section>
+
+      <!-- ── SECTION 2 · WARD FORECAST CARDS ──────────────────── -->
+      <section id="wards" class="section">
+        <div class="section-heading">
+          <h2>Ward-Level Forecast</h2>
+          <span class="section-meta">30-day ML forecast per ward</span>
+        </div>
+
+        <div class="incoming-wards">
+          <strong>Wards projected to increase occupancy:</strong>
+          <ng-container *ngIf="wardsProjectedIncreasing().length > 0; else noIncomingWards">
+            <div class="incoming-list">
+              <div class="incoming-item" *ngFor="let w of wardsProjectedIncreasing(); trackBy: trackWardByKey">
+                <span class="incoming-icon">{{ w.icon }}</span>
+                <span class="incoming-name">{{ w.name }}</span>
+                <span class="incoming-delta">+{{ wardProjectedDelta(w) }}%</span>
+                <span class="incoming-beds">{{ wardProjectedBeds(w) }} beds needed</span>
+              </div>
+            </div>
+          </ng-container>
+          <ng-template #noIncomingWards>
+            <div class="incoming-none">No wards projected to increase significantly.</div>
+          </ng-template>
+        </div>
+
+        <div class="ward-grid">
+          <div class="ward-card" *ngFor="let ward of wardStats; trackBy: trackWardByName" [class.ward-critical]="ward.mape > 100">
+              <div class="ward-header">
+                <span class="ward-icon">{{ ward.icon }}</span>
+                <div>
+                  <div class="ward-name">{{ ward.name }}</div>
+                  <div class="ward-type-badge">{{ ward.type }}</div>
+                </div>
+                <div class="ward-mape" [class.mape-bad]="ward.mape > 80" [class.mape-ok]="ward.mape <= 30">
+                  Accuracy {{ ward.mape }}%
+                </div>
+              </div>
+
+              <div class="ward-metrics">
+                <div class="wm-item">
+                  <span class="wm-lbl">Current</span>
+                  <span class="wm-val">{{ wardCurrentBeds(ward) }} beds</span>
+                </div>
+                <div class="wm-item">
+                  <span class="wm-lbl">Forecast</span>
+                  <span class="wm-val">{{ wardProjectedBeds(ward) }} beds</span>
+                </div>
+                <div class="wm-item">
+                  <span class="wm-lbl">Capacity</span>
+                  <span class="wm-val">{{ wardTotalBeds(ward) }} beds</span>
+                </div>
+              </div>
+
+              <div class="ward-metrics-secondary">
+                <div class="wm-item">
+                  <span class="wm-lbl">Reliability</span>
+                  <span class="wm-val" [style.color]="ward.r2 > 0 ? 'var(--blue)' : 'var(--red)'">
+                    {{ ward.r2 >= 0 ? ward.r2.toFixed(3) : ward.r2.toFixed(3) }}
+                  </span>
+                </div>
+                <div class="wm-item">
+                  <span class="wm-lbl">Avg Error</span>
+                  <span class="wm-val">{{ ward.mae }}</span>
+                </div>
+                <div class="wm-item">
+                  <span class="wm-lbl">Error Range</span>
+                  <span class="wm-val">{{ ward.rmse }}</span>
+                </div>
+              </div>
+
+              <!-- inline sparkline canvas -->
+              <div class="ward-spark-wrap">
+                <canvas [id]="'ward-spark-' + ward.key" height="70"></canvas>
+              </div>
+
+              <div class="ward-status"
+                [class.ws-critical]="ward.mape > 80"
+                [class.ws-warn]="ward.mape > 30 && ward.mape <= 80"
+                [class.ws-good]="ward.mape <= 30">
+                {{ ward.mape > 80 ? '⚠ High uncertainty' : ward.mape > 30 ? '~ Moderate forecast' : '✓ Reliable forecast' }}
+              </div>
+            </div>
+        </div>
+      </section>
+
+      <!-- ── SECTION 3 · MODEL LEADERBOARD ────────────────────── -->
+      <section id="leaderboard" class="section">
+        <div class="section-heading">
+          <h2>Model Leaderboard</h2>
+          <span class="section-meta">Ranked by lowest MAPE — test set (last 30 days)</span>
+        </div>
+
+        <div class="lb-wrap">
+          <table class="lb-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Model</th>
+                <th>MAPE %<span class="sort-arrow">↑</span></th>
+                <th>MAE</th>
+                <th>RMSE</th>
+                <th>R²</th>
+                <th>Accuracy Band</th>
+              </tr>
+            </thead>
+            <tbody>
+                  <tr *ngFor="let row of leaderboard; let i = index; trackBy: trackLeaderboardByModel" [class.lb-best]="i === 0" [class.lb-top3]="i > 0 && i < 3">
+                  <td class="lb-rank">
+                    <ng-container *ngIf="i === 0; else rankNumber">
+                      <span class="medal gold">🥇</span>
+                    </ng-container>
+                    <ng-template #rankNumber>
+                      <ng-container *ngIf="i === 1; else rankThreeOrMore">
+                        <span class="medal silver">🥈</span>
+                      </ng-container>
+                      <ng-template #rankThreeOrMore>
+                        <ng-container *ngIf="i === 2; else rankDefault">
+                          <span class="medal bronze">🥉</span>
+                        </ng-container>
+                        <ng-template #rankDefault>
+                          <span class="rank-num">{{ i + 1 }}</span>
+                        </ng-template>
+                      </ng-template>
+                    </ng-template>
+                  </td>
+                  <td class="lb-model">
+                    <span class="model-dot" [style.background]="modelColor(row.model)"></span>
+                    {{ row.model }}
+                    <span class="best-badge" *ngIf="i === 0">BEST</span>
+                  </td>
+                  <td class="lb-mape" [style.color]="row.mape < 30 ? 'var(--blue)' : row.mape < 60 ? '#e67e22' : 'var(--red)'">
+                    {{ row.mape.toFixed(2) }}
+                  </td>
+                  <td>{{ row.mae.toFixed(3) }}</td>
+                  <td>{{ row.rmse.toFixed(3) }}</td>
+                  <td [style.color]="row.r2 > 0.4 ? 'var(--blue)' : row.r2 > 0 ? 'var(--gray)' : 'var(--red)'">
+                    {{ row.r2.toFixed(4) }}
+                  </td>
+                  <td>
+                    <div class="acc-bar-wrap">
+                      <div class="acc-bar" [style.width.%]="mapeToWidth(row.mape)"
+                        [style.background]="row.mape < 30 ? 'var(--blue)' : row.mape < 60 ? '#e67e22' : 'var(--red)'"></div>
+                      <span class="acc-label">{{ mapeLabel(row.mape) }}</span>
+                    </div>
+                  </td>
+                </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Best model highlight -->
+        <ng-container *ngIf="leaderboard.length > 0">
+          <div class="best-model-banner">
+            <span class="bm-icon">🏆</span>
+            <div class="bm-text">
+              <strong>Best Model: {{ leaderboard[0].model }}</strong>
+              <span>MAPE {{ leaderboard[0].mape.toFixed(2) }}% · RMSE {{ leaderboard[0].rmse.toFixed(3) }} · Saved as <code>best_model_{{ leaderboard[0].model }}.pkl</code></span>
+            </div>
+          </div>
+        </ng-container>
+      </section>
+
+      <!-- ── SECTION 4 · FORECAST LINE CHARTS ─────────────────── -->
+      <section id="charts" class="section">
+        <div class="section-heading">
+          <h2>Occupancy Trend &amp; Forecast</h2>
+          <span class="section-meta">Actual vs Predicted · all wards combined</span>
+        </div>
+
+        <!-- Occupancy Deep Dive (existing component, re-skinned) -->
+        <app-occupancy-dig-charts
+          [forecast]="forecastData"
+          [forecastDays]="forecastDays"
+          [selectedModel]="selectedModel"
+          [asOfDate]="selectedAsOfDate">
+        </app-occupancy-dig-charts>
+      </section>
+
+      <!-- ── ALERTS ─────────────────────────────────────────────── -->
+      <ng-container *ngIf="alerts.length > 0">
+        <section id="alerts" class="section">
+          <div class="section-heading">
+            <h2>Operational Alerts</h2>
+          </div>
+          <div class="alerts-list">
+            <div class="alert-row" *ngFor="let a of alerts; trackBy: trackAlertByTimestamp"
+                 [style.border-left-color]="getAlertSeverityColor(a.severity)">
+              <span class="alert-sev-dot" [style.background]="getAlertSeverityColor(a.severity)"></span>
+              <div class="alert-body">
+                <span class="alert-type">{{ formatAlertType(a.alert_type) }}</span>
+                <p>{{ a.message }}</p>
+                <small *ngIf="a.department">Ward: {{ a.department }}</small>
+              </div>
+              <span class="alert-ts">{{ a.timestamp | date:'HH:mm dd MMM' }}</span>
+            </div>
+          </div>
+        </section>
+      </ng-container>
+
+    </ng-container> <!-- /!loading && !error -->
+  </main>
+
+  <!-- ── AI COPILOT ─────────────────────────────────────────── -->
+  <app-dashboard-copilot
+    [asOfDate]="selectedAsOfDate"
+    [selectedModel]="selectedModel"
+    [forecastDays]="forecastDays" />
+
+</div>

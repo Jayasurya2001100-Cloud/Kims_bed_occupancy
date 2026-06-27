@@ -1,0 +1,61 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --black:   #000000;
+  --gray:    #6C6E71;
+  --blue:    #007DB0;
+  --blue-lt: #0099D6;
+  --blue-dk: #005A80;
+  --red:     #FF0000;
+  --white:   #FFFFFF;
+  --surface: #F4F7FA;
+  --card:    #FFFFFF;
+  --border:  rgba(0, 125, 176, 0.15);
+  --grid:    rgba(0, 125, 176, 0.08);
+
+  /* additional colors */
+  --green:      #27ae60;
+  --green-lt:   #d5f4e6;
+  --green-dk:   #1e8449;
+  --yellow:     #f39c12;
+  --yellow-lt:  #fff3e0;
+  --yellow-dk:  #b8860b;
+
+  /* text colors */
+  --text:           var(--black);
+  --text-secondary: var(--gray);
+  --bg-gray:        #f5f5f5;
+
+  /* chart palette */
+  --c1: #007DB0;
+  --c2: #0099D6;
+  --c3: #005A80;
+  --c4: #FF0000;
+  --c5: #6C6E71;
+  --c6: #00B4D8;
+  --c7: #48CAE4;
+}
+
+html { font-size: 14px; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Ubuntu, sans-serif;
+  background: var(--surface);
+  color: var(--black);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 3px; }
+
+a { color: var(--blue); text-decoration: none; }
+button { cursor: pointer; font-family: inherit; }

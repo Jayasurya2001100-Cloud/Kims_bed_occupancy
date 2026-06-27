@@ -1,0 +1,10 @@
+@if ((forecast?.forecast_data?.length ?? 0) > 0) {
+  <div class="dfc-wrap">
+    <div class="dfc-cell tall">
+      <canvas #lineCanvas></canvas>
+    </div>
+    <div class="dfc-cell tall">
+      <canvas #barCanvas></canvas>
+    </div>
+  </div>
+}
