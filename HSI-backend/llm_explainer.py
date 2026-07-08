@@ -511,3 +511,242 @@ def get_series_forecast_narrative(
     except Exception as exc:
         logger.info("Series narrative fallback engaged: %s", exc)
         return _generate_code_series_narrative(analysis, model_name)
+
+
+def get_bed_recommendation_reasoning(
+    patient_data: Dict[str, Any],
+    bed: Dict[str, Any],
+    score: float,
+    breakdown: Dict[str, float],
+    dept_occupancy: Optional[Dict[str, float]] = None,
+    payer_name: Optional[str] = None,
+) -> str:
+    """
+    Generate natural language reasoning for a bed recommendation using local LLM.
+    Falls back to code-based reasoning if Ollama is not available.
+
+    Args:
+        patient_data: Patient registration data
+        bed: Bed details (id, department, type, room, status)
+        score: Total suitability score (0-100)
+        breakdown: Score breakdown by category
+        dept_occupancy: Current occupancy rates per department
+        payer_name: Patient's payer channel name
+
+    Returns:
+        Natural language reasoning string
+    """
+    try:
+        import ollama
+        # Quick health check - if Ollama server isn't running, don't attempt LLM call
+        try:
+            ollama.list()
+            use_llm = True
+        except Exception:
+            use_llm = False
+    except ImportError:
+        use_llm = False
+
+    if use_llm:
+        try:
+            return _generate_llm_bed_reasoning(patient_data, bed, score, breakdown, dept_occupancy, payer_name)
+        except Exception as e:
+            logger.warning(f"LLM bed reasoning failed: {e}, falling back to code-based")
+            return _generate_code_bed_reasoning(patient_data, bed, score, breakdown, dept_occupancy, payer_name)
+    else:
+        return _generate_code_bed_reasoning(patient_data, bed, score, breakdown, dept_occupancy, payer_name)
+
+
+def _generate_llm_bed_reasoning(
+    patient_data: Dict[str, Any],
+    bed: Dict[str, Any],
+    score: float,
+    breakdown: Dict[str, float],
+    dept_occupancy: Optional[Dict[str, float]],
+    payer_name: Optional[str],
+) -> str:
+    """Generate bed recommendation reasoning using Ollama LLM."""
+    import ollama
+    import signal
+
+    # Timeout handler - prevent hanging if Ollama is slow
+    def _timeout_handler(signum, frame):
+        raise TimeoutError("Ollama LLM call timed out after 15 seconds")
+
+    # Build context for the LLM
+    occ_info = ""
+    if dept_occupancy:
+        occ_rate = dept_occupancy.get(bed["department"], 0.0)
+        occ_info = f"Department occupancy: {occ_rate:.0%}"
+
+    clinical_flags = []
+    if patient_data.get("is_critical"):
+        clinical_flags.append("Critical condition")
+    if patient_data.get("requires_ventilator"):
+        clinical_flags.append("Requires ventilator")
+    if patient_data.get("requires_isolation"):
+        clinical_flags.append("Requires isolation")
+    if patient_data.get("requires_dialysis"):
+        clinical_flags.append("Requires dialysis")
+
+    prompt = f"""You are a hospital bed allocation expert. Explain why this bed was recommended for this patient.
+
+BED ALLOCATION RULES (9 Rule Groups):
+Rule Group 1 - Clinical Priority:
+  IF Severity = Critical THEN Allocate ICU Bed Only
+  IF Ventilator Required = Yes THEN Allocate Ventilator Bed Only
+  IF Isolation Required = Yes THEN Allocate Isolation Bed Only
+  IF Dialysis Required = Yes THEN Allocate Dialysis Unit Bed Only
+
+Rule Group 2 - Specialty:
+  IF Specialty = Cardiology THEN Prefer Cardiology Beds
+  IF Specialty = Neurology THEN Prefer Neurology Beds
+  IF Specialty = Oncology THEN Prefer Oncology Beds
+
+Rule Group 3 - Pediatric:
+  IF Age < 14 THEN Allocate Pediatric Beds Only
+
+Rule Group 4 - Gender:
+  IF Shared Room AND Gender = Female THEN Allocate Female Shared Room
+  IF Shared Room AND Gender = Male THEN Allocate Male Shared Room
+
+Rule Group 5 - Payer:
+  IF Payer = International THEN Prefer Private / Deluxe Rooms
+  IF Payer = Corporate THEN Validate Corporate Eligibility
+  IF Payer = Insurance THEN Validate Insurance Eligibility
+  IF Payer = CGHS THEN Validate CGHS Room Entitlement
+  IF Payer = Cash THEN Allocate Based On Patient Preference
+
+Rule Group 6 - Length of Stay:
+  IF LOS > 10 Days THEN Avoid Premium High-Turnover Beds
+  IF LOS < 2 Days THEN Allow Short Stay Beds
+
+Rule Group 7 - Availability:
+  IF Bed Status != Available THEN DO NOT Allocate
+  IF Cleaning Pending THEN DO NOT Allocate
+  IF Under Maintenance THEN DO NOT Allocate
+  IF Reserved THEN DO NOT Allocate
+
+Rule Group 8 - Occupancy Optimization:
+  IF Department Occupancy > 95% THEN Recommend Overflow Capacity
+  IF ICU Occupancy > 98% THEN Trigger Capacity Alert
+  IF Department Occupancy > 90% THEN Trigger Early Discharge Review
+
+Rule Group 9 - Revenue Optimization:
+  IF Private Room Eligible AND Available THEN Recommend Private Room
+  IF Corporate Package Covers Deluxe THEN Recommend Deluxe Room
+  IF International Patient THEN Prioritize Premium Inventory
+
+PATIENT:
+- Name: {patient_data.get('first_name', '')} {patient_data.get('last_name', '')}
+- Age: {patient_data.get('age', 'N/A')}, Gender: {patient_data.get('gender', 'N/A')}
+- Condition: {patient_data.get('condition', 'N/A')}
+- Specialty: {patient_data.get('specialty', 'N/A')}
+- Payer: {payer_name or 'N/A'}
+- Clinical flags: {', '.join(clinical_flags) if clinical_flags else 'None'}
+- Predicted LOS: {breakdown.get('los', 0)} days
+
+BED:
+- Bed ID: {bed.get('id', 'N/A')}
+- Department: {bed.get('department', 'N/A')}
+- Room Type: {bed.get('type', 'N/A')}
+- Room: {bed.get('room', 'N/A')}
+- {occ_info}
+
+SCORE BREAKDOWN (out of 100):
+- Clinical Match: {breakdown.get('clinical', 0)}/40
+- Specialty Match: {breakdown.get('specialty', 0)}/20
+- Severity Match: {breakdown.get('severity', 0)}/15
+- Payer Match: {breakdown.get('payer', 0)}/10
+- LOS Match: {breakdown.get('los', 0)}/5
+- Occupancy Optimization: {breakdown.get('occupancy', 0)}/5
+- Revenue Optimization: {breakdown.get('revenue', 0)}/5
+- TOTAL: {score}/100
+
+Using the 9 rule groups above, write a concise 3-4 sentence explanation of why this bed was recommended. Reference the specific rule groups that influenced the decision. Mention the strongest scoring factors and any concerns. Use plain English."""
+
+    # Set 15-second timeout for Ollama call
+    old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+    signal.alarm(15)
+    try:
+        response = ollama.chat(
+            model='llama3.2',
+            messages=[{'role': 'user', 'content': prompt}],
+            options={
+                'temperature': 0.3,
+                'num_predict': 300,
+                'top_p': 0.9
+            }
+        )
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old_handler)
+    reasoning = response['message']['content'].strip()
+    logger.info(f"LLM bed reasoning generated ({len(reasoning)} chars)")
+    return reasoning
+
+
+def _generate_code_bed_reasoning(
+    patient_data: Dict[str, Any],
+    bed: Dict[str, Any],
+    score: float,
+    breakdown: Dict[str, float],
+    dept_occupancy: Optional[Dict[str, float]],
+    payer_name: Optional[str],
+) -> str:
+    """Generate code-based bed recommendation reasoning (fallback)."""
+    reasons = []
+
+    # Clinical
+    if breakdown.get("clinical", 0) >= 35:
+        reasons.append("Excellent clinical match")
+    elif breakdown.get("clinical", 0) >= 25:
+        reasons.append("Good clinical match")
+    elif breakdown.get("clinical", 0) > 0:
+        reasons.append("Acceptable clinical match")
+
+    # Specialty
+    if breakdown.get("specialty", 0) >= 20:
+        reasons.append(f"Exact specialty match ({bed['department']})")
+    elif breakdown.get("specialty", 0) >= 10:
+        reasons.append("Specialty-neutral")
+
+    # Severity
+    if breakdown.get("severity", 0) >= 15:
+        reasons.append("Optimal severity-tier match")
+    elif breakdown.get("severity", 0) >= 10:
+        reasons.append("Good severity-tier match")
+
+    # Payer
+    if breakdown.get("payer", 0) >= 10:
+        reasons.append(f"Payer-preferred room type for {payer_name}")
+    elif breakdown.get("payer", 0) >= 7:
+        reasons.append(f"Payer-eligible room type for {payer_name}")
+
+    # Occupancy
+    if dept_occupancy:
+        occ_rate = dept_occupancy.get(bed["department"], 0.0)
+        occ_pct = round(occ_rate * 100)
+        if breakdown.get("occupancy", 0) >= 5:
+            reasons.append(f"Low occupancy ({occ_pct}%) in {bed['department']}")
+        elif breakdown.get("occupancy", 0) <= 1:
+            reasons.append(f"High occupancy ({occ_pct}%) - overflow risk")
+
+    # Revenue
+    if breakdown.get("revenue", 0) >= 5:
+        if payer_name == "International":
+            reasons.append("Premium inventory for International patient")
+        elif payer_name == "Corporate":
+            reasons.append("Deluxe Room covered by Corporate package")
+        else:
+            reasons.append("Revenue-optimized room selection")
+
+    # Score summary
+    if score >= 90:
+        reasons.append(f"Total score {score}/100 - optimal recommendation")
+    elif score >= 70:
+        reasons.append(f"Total score {score}/100 - strong match")
+    else:
+        reasons.append(f"Total score {score}/100 - acceptable match")
+
+    return " | ".join(reasons)
