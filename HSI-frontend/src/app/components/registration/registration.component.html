@@ -1,96 +1,205 @@
 <div class="registration-container">
-  <h1>Patient Registration & Bed Allocation</h1>
+  <div class="page-header">
+    <h1>Patient Registration & Bed Allocation</h1>
+    <div class="step-indicator">
+      <div class="step" [class.active]="step >= 1" [class.done]="step > 1">
+        <span class="step-num">1</span>
+        <span class="step-label">Patient Info</span>
+      </div>
+      <div class="step-line" [class.active]="step > 1"></div>
+      <div class="step" [class.active]="step >= 2" [class.done]="step > 2">
+        <span class="step-num">2</span>
+        <span class="step-label">Bed Selection</span>
+      </div>
+      <div class="step-line" [class.active]="step > 2"></div>
+      <div class="step" [class.active]="step >= 3">
+        <span class="step-num">3</span>
+        <span class="step-label">Confirmed</span>
+      </div>
+    </div>
+  </div>
 
-  <div class="registration-grid">
+  <div class="error-banner" *ngIf="error">
+    <span>{{ error }}</span>
+    <button (click)="error = null">&times;</button>
+  </div>
+
+  <!-- STEP 1: Patient Information -->
+  <div class="registration-grid" *ngIf="step === 1">
     <div class="card">
       <h2>Patient Information</h2>
-      <form (ngSubmit)="onSubmit()" #regForm="ngForm">
-        <div class="form-row">
-          <div class="form-group">
-            <label>First Name *</label>
-            <input type="text" [(ngModel)]="patient.first_name" name="first_name" required />
-          </div>
-          <div class="form-group">
-            <label>Last Name *</label>
-            <input type="text" [(ngModel)]="patient.last_name" name="last_name" required />
-          </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name *</label>
+          <input type="text" [(ngModel)]="patient.first_name" placeholder="Enter first name" />
         </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Age *</label>
-            <input type="number" [(ngModel)]="patient.age" name="age" required min="0" max="120" />
-          </div>
-          <div class="form-group">
-            <label>Gender *</label>
-            <select [(ngModel)]="patient.gender" name="gender" required>
-              <option value="">Select...</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label>Last Name *</label>
+          <input type="text" [(ngModel)]="patient.last_name" placeholder="Enter last name" />
         </div>
+      </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label>Condition *</label>
-            <input type="text" [(ngModel)]="patient.condition" name="condition" required />
-          </div>
-          <div class="form-group">
-            <label>Specialty *</label>
-            <select [(ngModel)]="patient.specialty" name="specialty" required>
-              <option value="">Select...</option>
-              <option *ngFor="let s of specialties" [value]="s">{{ s }}</option>
-            </select>
-          </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Age *</label>
+          <input type="number" [(ngModel)]="patient.age" min="0" max="120" placeholder="0" />
         </div>
+        <div class="form-group">
+          <label>Gender *</label>
+          <select [(ngModel)]="patient.gender">
+            <option value="">Select...</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
 
+      <div class="form-row">
+        <div class="form-group">
+          <label>Condition *</label>
+          <input type="text" [(ngModel)]="patient.condition" placeholder="e.g. Pneumonia, Cardiac..." />
+        </div>
+        <div class="form-group">
+          <label>Specialty *</label>
+          <select [(ngModel)]="patient.specialty">
+            <option value="">Select...</option>
+            <option *ngFor="let s of specialties" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
         <div class="form-group">
           <label>Payer Channel *</label>
-          <select [(ngModel)]="patient.payer_channel" name="payer" required>
+          <select [(ngModel)]="patient.payer_channel">
             <option value="">Select...</option>
             <option *ngFor="let p of payerChannels" [value]="p.id">{{ p.name }}</option>
           </select>
         </div>
-
-        <div class="form-group checkboxes">
-          <label><input type="checkbox" [(ngModel)]="patient.is_critical" name="critical" /> Critical Condition</label>
-          <label><input type="checkbox" [(ngModel)]="patient.requires_ventilator" name="ventilator" /> Requires Ventilator</label>
-          <label><input type="checkbox" [(ngModel)]="patient.requires_isolation" name="isolation" /> Requires Isolation</label>
-          <label><input type="checkbox" [(ngModel)]="patient.requires_dialysis" name="dialysis" /> Requires Dialysis</label>
-        </div>
-
         <div class="form-group">
-          <label>Notes</label>
-          <textarea [(ngModel)]="patient.notes" name="notes" rows="3"></textarea>
+          <label>Room Preference</label>
+          <select [(ngModel)]="patient.room_preference">
+            <option value="">No preference</option>
+            <option *ngFor="let rt of getAvailableRoomTypes()" [value]="rt">{{ rt }}</option>
+          </select>
         </div>
+      </div>
 
-        <div class="form-actions">
-          <button type="button" (click)="getRecommendations()" [disabled]="!regForm.valid || loading" class="btn-secondary">
-            {{ loading ? 'Loading...' : 'Get Bed Recommendations' }}
-          </button>
-          <button type="submit" [disabled]="!regForm.valid || loading || !selectedBed" class="btn-primary">
-            Confirm Admission
-          </button>
+      <!-- Room type info cards -->
+      <div class="room-type-info" *ngIf="patient.payer_channel && getAvailableRoomTypes().length > 0">
+        <div class="room-type-card" *ngFor="let rt of getAvailableRoomTypes()">
+          <div class="rt-name">{{ rt }}</div>
+          <div class="rt-desc">{{ getRoomTypeDescription(rt) }}</div>
         </div>
-      </form>
+      </div>
+
+      <div class="form-group checkboxes">
+        <label><input type="checkbox" [(ngModel)]="patient.is_critical" /> Critical Condition</label>
+        <label><input type="checkbox" [(ngModel)]="patient.requires_ventilator" /> Requires Ventilator</label>
+        <label><input type="checkbox" [(ngModel)]="patient.requires_isolation" /> Requires Isolation</label>
+        <label><input type="checkbox" [(ngModel)]="patient.requires_dialysis" /> Requires Dialysis</label>
+      </div>
+
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea [(ngModel)]="patient.notes" rows="3" placeholder="Additional notes..."></textarea>
+      </div>
+
+      <!-- Applied Business Rules Preview -->
+      <div class="rules-preview" *ngIf="getAppliedRules().length > 0">
+        <h3>Business Rules Applied</h3>
+        <div class="rule-item" *ngFor="let r of getAppliedRules()">
+          <span class="rule-badge">{{ r.key }}</span>
+          <span>{{ r.rule.description }}</span>
+        </div>
+      </div>
+
+      <!-- Payer room type restrictions -->
+      <div class="payer-room-info" *ngIf="patient.payer_channel">
+        <div class="payer-info-item" *ngIf="getAvailableRoomTypes().length < bedTypes.length">
+          <span class="info-icon">&#9888;</span>
+          <span>Allowed room types for {{ getPayerName(patient.payer_channel) }}: {{ getAvailableRoomTypes().join(', ') }}</span>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button (click)="goToRecommendations()" [disabled]="!isPatientFormValid() || loading" class="btn-primary btn-lg">
+          Get AI Bed Recommendations &rarr;
+        </button>
+      </div>
     </div>
 
-    <div class="card" *ngIf="recommendations.length > 0">
+    <!-- Sidebar: Model Info + Recent Admissions -->
+    <div class="sidebar-panel">
+      <div class="card model-card" *ngIf="modelMetadata">
+        <h3>ML Model Status</h3>
+        <div class="model-grid">
+          <div class="model-item">
+            <div class="model-label">Engine</div>
+            <div class="model-value">{{ modelMetadata.engine }}</div>
+          </div>
+          <div class="model-item">
+            <div class="model-label">MAPE</div>
+            <div class="model-value">{{ (modelMetadata.mape * 100).toFixed(1) }}%</div>
+          </div>
+          <div class="model-item">
+            <div class="model-label">Version</div>
+            <div class="model-value">{{ modelMetadata.version }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Recent Admissions</h3>
+        <div class="recent-list" *ngIf="recentAdmissions.length > 0">
+          <div class="recent-item" *ngFor="let adm of recentAdmissions">
+            <div class="recent-name">{{ adm.patient.first_name }} {{ adm.patient.last_name }}</div>
+            <div class="recent-meta">
+              <span>{{ adm.allocated_bed.department }}</span>
+              <span class="recent-bed">{{ adm.allocated_bed.bed_id }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="recentAdmissions.length === 0">No recent admissions</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Bed Recommendations -->
+  <div class="recommendation-layout" *ngIf="step === 2">
+    <div class="card patient-summary-card">
+      <h2>Patient Summary</h2>
+      <div class="summary-grid">
+        <div><strong>Name:</strong> {{ patient.first_name }} {{ patient.last_name }}</div>
+        <div><strong>Age/Gender:</strong> {{ patient.age }} / {{ patient.gender }}</div>
+        <div><strong>Condition:</strong> {{ patient.condition }}</div>
+        <div><strong>Specialty:</strong> {{ patient.specialty }}</div>
+        <div><strong>Payer:</strong> {{ getPayerName(patient.payer_channel) }}</div>
+        <div *ngIf="patient.room_preference"><strong>Room Preference:</strong> {{ patient.room_preference }}</div>
+        <div *ngIf="patientSummary"><strong>Predicted LOS:</strong> {{ patientSummary.predicted_los }} days</div>
+        <div *ngIf="patientSummary"><strong>Priority:</strong>
+          <span class="priority-badge" [class]="patientSummary.priority">{{ patientSummary.priority }}</span>
+        </div>
+      </div>
+      <button class="btn-secondary btn-sm" (click)="goBack()">&larr; Edit Patient Info</button>
+    </div>
+
+    <div class="card recommendations-card">
       <h2>AI-Powered Bed Recommendations</h2>
-      <div class="recommendations-list">
-        <div 
-          *ngFor="let rec of recommendations" 
+      <div class="loading-spinner" *ngIf="loading">Analyzing patient data and finding best beds...</div>
+      <div class="recommendations-list" *ngIf="!loading && recommendations.length > 0">
+        <div
+          *ngFor="let rec of recommendations; let i = index"
           class="recommendation-item"
-          [class.selected]="selectedBed === rec.bed_id"
+          [class.selected]="selectedBed?.bed_id === rec.bed_id"
+          [class.top-pick]="i === 0"
           (click)="selectBed(rec)"
         >
+          <div class="rec-rank" *ngIf="i === 0">TOP PICK</div>
           <div class="rec-header">
             <span class="bed-id">{{ rec.bed_id }}</span>
-            <span class="score" [class.high]="rec.score >= 90" [class.medium]="rec.score >= 70 && rec.score < 90">
-              Score: {{ rec.score }}
-            </span>
+            <span class="score" [class]="getScoreClass(rec.score)">{{ rec.score | number:'1.0-0' }}</span>
           </div>
           <div class="rec-details">
             <div><strong>Department:</strong> {{ rec.department }}</div>
@@ -98,20 +207,98 @@
             <div><strong>Room:</strong> {{ rec.room }}</div>
             <div><strong>Predicted LOS:</strong> {{ rec.predicted_los }} days</div>
           </div>
-          <div class="rec-reasoning">{{ rec.reasoning }}</div>
+          <!-- Score breakdown bars -->
+          <div class="score-breakdown" *ngIf="rec.score_breakdown">
+            <div class="breakdown-bar">
+              <span class="bar-label">Clinical</span>
+              <div class="bar-track"><div class="bar-fill clinical" [style.width.%]="(rec.score_breakdown.clinical / 40) * 100"></div></div>
+              <span class="bar-value">{{ rec.score_breakdown.clinical }}/40</span>
+            </div>
+            <div class="breakdown-bar">
+              <span class="bar-label">Specialty</span>
+              <div class="bar-track"><div class="bar-fill specialty" [style.width.%]="(rec.score_breakdown.specialty / 20) * 100"></div></div>
+              <span class="bar-value">{{ rec.score_breakdown.specialty }}/20</span>
+            </div>
+            <div class="breakdown-bar">
+              <span class="bar-label">Severity</span>
+              <div class="bar-track"><div class="bar-fill severity" [style.width.%]="(rec.score_breakdown.severity / 15) * 100"></div></div>
+              <span class="bar-value">{{ rec.score_breakdown.severity }}/15</span>
+            </div>
+            <div class="breakdown-bar">
+              <span class="bar-label">Payer</span>
+              <div class="bar-track"><div class="bar-fill payer" [style.width.%]="(rec.score_breakdown.payer / 10) * 100"></div></div>
+              <span class="bar-value">{{ rec.score_breakdown.payer }}/10</span>
+            </div>
+            <div class="breakdown-bar">
+              <span class="bar-label">LOS</span>
+              <div class="bar-track"><div class="bar-fill los" [style.width.%]="(rec.score_breakdown.los / 5) * 100"></div></div>
+              <span class="bar-value">{{ rec.score_breakdown.los }}/5</span>
+            </div>
+            <div class="breakdown-bar">
+              <span class="bar-label">Occupancy</span>
+              <div class="bar-track"><div class="bar-fill occupancy" [style.width.%]="(rec.score_breakdown.occupancy / 5) * 100"></div></div>
+              <span class="bar-value">{{ rec.score_breakdown.occupancy }}/5</span>
+            </div>
+            <div class="breakdown-bar">
+              <span class="bar-label">Revenue</span>
+              <div class="bar-track"><div class="bar-fill revenue" [style.width.%]="(rec.score_breakdown.revenue / 5) * 100"></div></div>
+              <span class="bar-value">{{ rec.score_breakdown.revenue }}/5</span>
+            </div>
+          </div>
+          <div class="rec-impact">
+            <span class="impact-label">Occupancy Impact:</span>
+            <span class="impact-value" [class]="rec.occupancy_impact">{{ rec.occupancy_impact }}</span>
+          </div>
+          <div class="rec-reasoning" *ngIf="rec.llm_reasoning">
+            <div class="llm-badge">AI Reasoning</div>
+            {{ rec.llm_reasoning }}
+          </div>
+          <div class="rec-reasoning" *ngIf="!rec.llm_reasoning">{{ rec.reasoning }}</div>
         </div>
       </div>
-    </div>
+      <div class="empty-state" *ngIf="!loading && recommendations.length === 0">No beds available matching requirements.</div>
 
-    <div class="card success" *ngIf="admissionConfirmed">
-      <h2>✓ Admission Confirmed</h2>
-      <div class="confirmation-details">
-        <p><strong>Admission ID:</strong> {{ admissionResponse?.admission_id }}</p>
-        <p><strong>Patient:</strong> {{ admissionResponse?.patient.first_name }} {{ admissionResponse?.patient.last_name }}</p>
-        <p><strong>Bed:</strong> {{ admissionResponse?.allocated_bed.bed_id }} - {{ admissionResponse?.allocated_bed.department }}</p>
-        <p><strong>Predicted LOS:</strong> {{ admissionResponse?.predicted_los }} days</p>
-        <button (click)="reset()" class="btn-primary">Register Another Patient</button>
+      <div class="form-actions" *ngIf="!loading && recommendations.length > 0">
+        <button class="btn-secondary" (click)="goBack()">&larr; Back</button>
+        <button class="btn-primary" [disabled]="!selectedBed" (click)="confirmAdmission()">
+          Confirm Admission &rarr;
+        </button>
       </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Confirmation -->
+  <div *ngIf="step === 3 && admissionResponse" class="confirmation-section">
+    <div class="card success-card">
+      <div class="success-icon">&#10003;</div>
+      <h2>Admission Confirmed</h2>
+      <div class="confirmation-grid">
+        <div class="conf-item">
+          <div class="conf-label">Admission ID</div>
+          <div class="conf-value highlight">{{ admissionResponse.admission_id }}</div>
+        </div>
+        <div class="conf-item">
+          <div class="conf-label">Patient</div>
+          <div class="conf-value">{{ admissionResponse.patient.first_name }} {{ admissionResponse.patient.last_name }}</div>
+        </div>
+        <div class="conf-item">
+          <div class="conf-label">Bed</div>
+          <div class="conf-value">{{ admissionResponse.allocated_bed.bed_id }} - {{ admissionResponse.allocated_bed.department }}</div>
+        </div>
+        <div class="conf-item">
+          <div class="conf-label">Predicted LOS</div>
+          <div class="conf-value">{{ admissionResponse.predicted_los }} days</div>
+        </div>
+        <div class="conf-item" *ngIf="admissionResponse.estimated_discharge">
+          <div class="conf-label">Estimated Discharge</div>
+          <div class="conf-value">{{ admissionResponse.estimated_discharge | date:'medium' }}</div>
+        </div>
+        <div class="conf-item">
+          <div class="conf-label">Status</div>
+          <div class="conf-value"><span class="status-badge confirmed">{{ admissionResponse.status }}</span></div>
+        </div>
+      </div>
+      <button (click)="reset()" class="btn-primary btn-lg">Register Another Patient</button>
     </div>
   </div>
 </div>

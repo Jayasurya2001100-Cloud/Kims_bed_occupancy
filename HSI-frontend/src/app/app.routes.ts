@@ -9,7 +9,9 @@ export const routes: Routes = [
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
   { path: 'dashboard', component: DashboardComponent },
   { path: 'registration', component: RegistrationComponent },
+  { path: 'recommendations', component: RegistrationComponent },
   { path: 'payer-intelligence', component: PayerIntelligenceComponent },
   { path: 'occupancy-alerts', component: OccupancyAlertsComponent },
   { path: 'bed-allocation-monitor', component: BedAllocationMonitorComponent },
+  { path: '**', redirectTo: '/dashboard' },
 ];

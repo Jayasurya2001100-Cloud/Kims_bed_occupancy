@@ -13,11 +13,11 @@ $border:  rgba(0,125,176,.15);
 // ── Layout ────────────────────────────────────────────────────
 .app-shell {
   display: grid;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: 1fr;
   grid-template-rows: 56px 1fr;
   grid-template-areas:
-    "topbar topbar"
-    "nav    main";
+    "topbar"
+    "main";
   min-height: 100vh;
   background: $surface;
 }
@@ -82,37 +82,9 @@ $border:  rgba(0,125,176,.15);
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-// ── Sidenav ───────────────────────────────────────────────────
-.sidenav {
-  grid-area: nav;
-  background: $blue;
-  border-right: 1px solid $blue-dk;
-  padding-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  position: sticky;
-  top: 56px;
-  height: calc(100vh - 56px);
-  overflow-y: auto;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 20px;
-  color: rgba($white,.75);
-  font-size: 13px;
-  font-weight: 500;
-  transition: all .15s;
-  border-left: 3px solid transparent;
-  &:hover, &.active {
-    color: $white;
-    background: rgba($white,.12);
-    border-left-color: $white;
-  }
-}
+// ── Sidenav (removed from template - handled by app-level sidebar) ──
+.sidenav { display: none; }
+.nav-item { display: none; }
 
 // ── Main ──────────────────────────────────────────────────────
 .main-content {

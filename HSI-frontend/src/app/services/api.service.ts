@@ -23,7 +23,9 @@ import {
   AdmissionResponse,
   PayerForecast,
   OccupancyAlert,
+  AlertRule,
   BedStatus,
+  BedStatusSummary,
   ModelMetadata,
 } from '../models/registration.models';
 
@@ -414,13 +416,47 @@ export class ApiService {
     );
   }
 
-  getBedStatus(department?: string): Observable<{ departments: BedStatus[]; timestamp: string }> {
+  getBedStatus(department?: string): Observable<{ departments: BedStatus[]; summary?: BedStatusSummary; timestamp: string }> {
     let params = new HttpParams();
     if (department) {
       params = params.set('department', department);
     }
-    return this.http.get<{ departments: BedStatus[]; timestamp: string }>(
+    return this.http.get<{ departments: BedStatus[]; summary?: BedStatusSummary; timestamp: string }>(
       `${this.apiRoot}/bed-status`,
+      { headers: this.getHeaders(), params }
+    );
+  }
+
+  getAlertRules(): Observable<{ alert_rules: AlertRule[] }> {
+    return this.http.get<{ alert_rules: AlertRule[] }>(
+      `${this.apiRoot}/config/alert-rules`,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  getRecentAdmissions(limit: number = 10): Observable<{ admissions: AdmissionResponse[]; total: number; timestamp: string }> {
+    const params = new HttpParams().set('limit', String(limit));
+    return this.http.get<{ admissions: AdmissionResponse[]; total: number; timestamp: string }>(
+      `${this.apiRoot}/admissions/recent`,
+      { headers: this.getHeaders(), params }
+    );
+  }
+
+  getBedAllocations(department?: string, date?: string, limit: number = 100): Observable<{ allocations: any[]; total: number; date: string; timestamp: string }> {
+    let params = new HttpParams().set('limit', String(limit));
+    if (department) params = params.set('department', department);
+    if (date) params = params.set('date', date);
+    return this.http.get<{ allocations: any[]; total: number; date: string; timestamp: string }>(
+      `${this.apiRoot}/bed-allocations`,
+      { headers: this.getHeaders(), params }
+    );
+  }
+
+  getBedInventory(department?: string): Observable<{ beds: any[]; total_beds: number; total_occupied: number; total_available: number; latest_date: string; timestamp: string }> {
+    let params = new HttpParams();
+    if (department) params = params.set('department', department);
+    return this.http.get<{ beds: any[]; total_beds: number; total_occupied: number; total_available: number; latest_date: string; timestamp: string }>(
+      `${this.apiRoot}/bed-inventory`,
       { headers: this.getHeaders(), params }
     );
   }

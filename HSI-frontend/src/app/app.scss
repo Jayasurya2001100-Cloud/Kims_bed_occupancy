@@ -1,4 +1,12 @@
 :host {
-  display: block;
+  display: flex;
   min-height: 100vh;
+}
+
+.main-content {
+  margin-left: 240px;
+  flex: 1;
+  min-height: 100vh;
+  background: var(--surface);
+  overflow-x: hidden;
 }
